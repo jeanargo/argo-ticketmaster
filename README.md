@@ -3,11 +3,16 @@
 This repository is related to the task **"Onboarding Assessment | Ticketmaster"** and it's structured as follows:
 
 ```
-_assets/
+metadata/
+    |-- postman/
+movement/
+transformation/
+presentation/
 ```
-
-### \_assets
-This directory stores files to support and facilitate the development of the project.
+* **Movement:** connector code, orchestration
+* **Transformation:** sql files, or dbt project goes here
+* **Presentation:** dashboards, DomoApps
+* **Metadata:** diagrams, ideation session notes
 
 ---
 
