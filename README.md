@@ -7,6 +7,10 @@ metadata/
     |-- postman/
 movement/
 transformation/
+    |-- ingestion/
+    |-- bronze/
+    |-- silver/
+    |-- gold/
 presentation/
 ```
 * **Movement:** connector code, orchestration
