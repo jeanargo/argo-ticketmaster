@@ -1,0 +1,24 @@
+resources:
+  jobs:
+    ticketmaster:
+      name: ticketmaster
+      tasks:
+        - task_key: ingestion-events
+          notebook_task:
+            notebook_path: /Workspace/Shared/ticketmaster/ingestion/ntb-ingestion-load_events
+            source: WORKSPACE
+        - task_key: bronze-events
+          depends_on:
+            - task_key: ingestion-events
+          notebook_task:
+            notebook_path: /Workspace/Shared/ticketmaster/bronze/ntb-bronze-api_ticketmaster-events
+            source: WORKSPACE
+        - task_key: silver-events
+          depends_on:
+            - task_key: bronze-events
+          notebook_task:
+            notebook_path: /Workspace/Shared/ticketmaster/silver/ntb-silver-event
+            source: WORKSPACE
+      queue:
+        enabled: true
+      performance_target: STANDARD
