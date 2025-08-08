@@ -1,0 +1,12 @@
+resources:
+  jobs:
+    model_entertainment:
+      name: model_entertainment
+      tasks:
+        - task_key: gold_entertainment
+          notebook_task:
+            notebook_path: /Workspace/Shared/ticketmaster/gold/ntb-gold-entertainment
+            source: WORKSPACE
+      queue:
+        enabled: true
+      performance_target: STANDARD
