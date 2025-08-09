@@ -1,0 +1,564 @@
+{
+  "datasets": [
+    {
+      "name": "272259e4",
+      "displayName": "fact_events",
+      "queryLines": [
+        "SELECT * FROM prd_gold.entertainment.fact_events"
+      ]
+    },
+    {
+      "name": "f84f3a6b",
+      "displayName": "dim_promoter",
+      "queryLines": [
+        "SELECT * FROM prd_gold.entertainment.dim_promoter"
+      ]
+    },
+    {
+      "name": "b24ccc91",
+      "displayName": "dim_venue",
+      "queryLines": [
+        "SELECT * FROM prd_gold.entertainment.dim_venue"
+      ]
+    },
+    {
+      "name": "1a378e71",
+      "displayName": "promoter_performance",
+      "queryLines": [
+        "WITH by_venue AS (\r\n",
+        "  SELECT\r\n",
+        "    p.name AS promoter_name,\r\n",
+        "    v.name AS event_name,\r\n",
+        "    -- Se existir a coluna real de vendas, troque para: SUM(f.tickets_sold)\r\n",
+        "    SUM(f.ticket_limit) AS tickets_sold,\r\n",
+        "    COUNT(f.id_event)   AS event_count,\r\n",
+        "    MAX(f.ticket_limit) AS max_ticket_limit\r\n",
+        "  FROM prd_gold.entertainment.fact_events f\r\n",
+        "  JOIN prd_gold.entertainment.dim_venue    v ON f.id_venue    = v.id\r\n",
+        "  JOIN prd_gold.entertainment.dim_promoter p ON f.id_promoter = p.id\r\n",
+        "  GROUP BY p.name, v.name\r\n",
+        ")\r\n",
+        "SELECT * FROM (\r\n",
+        "SELECT\r\n",
+        "  promoter_name,\r\n",
+        "  ROUND(AVG(100.0 * max_ticket_limit / NULLIF(tickets_sold, 0)), 2)\r\n",
+        "    AS avg_pct_max_ticket_limit_vs_tickets_sold,\r\n",
+        "  SUM(tickets_sold) AS total_tickets_sold,\r\n",
+        "  SUM(event_count)  AS total_event_count\r\n",
+        "FROM by_venue\r\n",
+        "WHERE tickets_sold IS NOT NULL\r\n",
+        "GROUP BY promoter_name\r\n",
+        "ORDER BY\r\n",
+        "  avg_pct_max_ticket_limit_vs_tickets_sold DESC,\r\n",
+        "  total_tickets_sold DESC,\r\n",
+        "  total_event_count ASC\r\n",
+        "  ) ORDER BY total_tickets_sold DESC\r\n"
+      ]
+    },
+    {
+      "name": "63c44fdd",
+      "displayName": "Market Promoter Distribution Analysis",
+      "queryLines": [
+        "SELECT\r\n",
+        "      REPLACE(m.name,'\"',\"\") AS market_name,\r\n",
+        "      COUNT(DISTINCT p.id) AS total_promoters,\r\n",
+        "      COLLECT_SET(p.name) AS promoters\r\n",
+        "FROM prd_gold.entertainment.fact_events e\r\n",
+        "JOIN prd_gold.entertainment.dim_market m \r\n",
+        "      ON e.id_market = m.id\r\n",
+        "JOIN prd_gold.entertainment.dim_promoter p \r\n",
+        "      ON e.id_promoter = p.id\r\n",
+        "WHERE e.id_promoter != \"\"\r\n",
+        "GROUP BY m.name\r\n"
+      ]
+    },
+    {
+      "name": "5c8abc99",
+      "displayName": "Promoter Events Summary Analysis",
+      "queryLines": [
+        "SELECT\r\n",
+        "      p.name AS promoter_name,\r\n",
+        "      COUNT(DISTINCT e.id_event) AS total_events,\r\n",
+        "      LOG10(COUNT(DISTINCT e.id_event) + 1) AS log_proportion_total_events\r\n",
+        "FROM prd_gold.entertainment.fact_events e\r\n",
+        "JOIN prd_gold.entertainment.dim_promoter p \r\n",
+        "      ON e.id_promoter = p.id\r\n",
+        "WHERE e.id_promoter != \"\"\r\n",
+        "GROUP BY p.name\r\n",
+        "ORDER BY log_proportion_total_events DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "6d662635",
+      "displayName": "Promoters Performance",
+      "layout": [
+        {
+          "widget": {
+            "name": "65b2aad3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "1a378e71",
+                  "fields": [
+                    {
+                      "name": "promoter_name",
+                      "expression": "`promoter_name`"
+                    },
+                    {
+                      "name": "avg_pct_max_ticket_limit_vs_tickets_sold",
+                      "expression": "`avg_pct_max_ticket_limit_vs_tickets_sold`"
+                    },
+                    {
+                      "name": "total_tickets_sold",
+                      "expression": "`total_tickets_sold`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "promoter_name",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 100000,
+                    "title": "Promoter",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "promoter_name"
+                  },
+                  {
+                    "fieldName": "avg_pct_max_ticket_limit_vs_tickets_sold",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "decimal",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 100001,
+                    "title": "Effectiveness",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "avg_pct_max_ticket_limit_vs_tickets_sold"
+                  },
+                  {
+                    "fieldName": "total_tickets_sold",
+                    "numberFormat": "0",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 100002,
+                    "title": "Total Tickets Sold",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "total_tickets_sold"
+                  }
+                ]
+              },
+              "invisibleColumns": [
+                {
+                  "numberFormat": "0",
+                  "booleanValues": [
+                    "false",
+                    "true"
+                  ],
+                  "imageUrlTemplate": "{{ @ }}",
+                  "imageTitleTemplate": "{{ @ }}",
+                  "imageWidth": "",
+                  "imageHeight": "",
+                  "linkUrlTemplate": "{{ @ }}",
+                  "linkTextTemplate": "{{ @ }}",
+                  "linkTitleTemplate": "{{ @ }}",
+                  "linkOpenInNewTab": true,
+                  "name": "total_event_count",
+                  "type": "integer",
+                  "displayAs": "number",
+                  "order": 100003,
+                  "title": "Total Event Count",
+                  "allowSearch": false,
+                  "alignContent": "right",
+                  "allowHTML": false,
+                  "highlightLinks": false,
+                  "useMonospaceFont": false,
+                  "preserveWhitespace": false
+                }
+              ],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 100,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false,
+              "frame": {
+                "title": "Event Classifications",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "53bb2e49",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b24ccc91",
+                  "fields": [
+                    {
+                      "name": "latitude",
+                      "expression": "`latitude`"
+                    },
+                    {
+                      "name": "longitude",
+                      "expression": "`longitude`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "symbol-map",
+              "encodings": {
+                "coordinates": {
+                  "latitude": {
+                    "fieldName": "latitude",
+                    "displayName": "latitude"
+                  },
+                  "longitude": {
+                    "fieldName": "longitude",
+                    "displayName": "longitude"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Venues Location"
+              },
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 2,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "72934b46",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "5c8abc99",
+                  "fields": [
+                    {
+                      "name": "total_events",
+                      "expression": "`total_events`"
+                    },
+                    {
+                      "name": "log_proportion_total_events",
+                      "expression": "`log_proportion_total_events`"
+                    },
+                    {
+                      "name": "promoter_name",
+                      "expression": "`promoter_name`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "log_proportion_total_events",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "proportion"
+                },
+                "y": {
+                  "fieldName": "promoter_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Promoter"
+                },
+                "label": {
+                  "show": false
+                },
+                "extra": [
+                  {
+                    "fieldName": "total_events",
+                    "displayName": "total_events"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "1e1e828f",
+            "queries": [
+              {
+                "name": "dashboards/01f0755b31251f59a61b1f1f5e25fb75/datasets/01f0755b3a5418b2ad3522b26ede7530_name",
+                "query": {
+                  "datasetName": "f84f3a6b",
+                  "fields": [
+                    {
+                      "name": "name",
+                      "expression": "`name`"
+                    },
+                    {
+                      "name": "name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "name",
+                    "displayName": "name",
+                    "queryName": "dashboards/01f0755b31251f59a61b1f1f5e25fb75/datasets/01f0755b3a5418b2ad3522b26ede7530_name"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Promoter Name"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "db33c16e",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Performance and Geographic Reach of Event Promoters\n",
+                "\n",
+                "This dashboard presents the performance of key event promoters, showing their effectiveness, ticket sales volume, and the geographic distribution of venues. The combination of metrics and map allows for evaluating market share, territorial reach, and identifying strategic opportunities.\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "0e9fdf86",
+            "queries": [
+              {
+                "name": "dashboards/01f0755b31251f59a61b1f1f5e25fb75/datasets/01f0755b39671ffab1c863d6ae7d5093_event_start_date",
+                "query": {
+                  "datasetName": "272259e4",
+                  "fields": [
+                    {
+                      "name": "event_start_date",
+                      "expression": "`event_start_date`"
+                    },
+                    {
+                      "name": "event_start_date_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "event_start_date",
+                    "displayName": "event_start_date",
+                    "queryName": "dashboards/01f0755b31251f59a61b1f1f5e25fb75/datasets/01f0755b39671ffab1c863d6ae7d5093_event_start_date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Event Period"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 1,
+            "width": 2,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "8b119eba",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "6795cd31",
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-text-entry",
+              "encodings": {
+                "fields": []
+              },
+              "frame": {
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}
